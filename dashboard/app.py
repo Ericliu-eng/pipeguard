@@ -282,9 +282,7 @@ if runs_page is not None:
         st.session_state["runs_offset"] = ((total_runs - 1) // page_size) * page_size
         st.rerun()
 
-    filters_active = any(
-        [active_pipeline_filter, active_status_filter, active_quality_filter]
-    )
+    filters_active = any([active_pipeline_filter, active_status_filter, active_quality_filter])
 
     if total_runs > 0 and not runs:
         st.warning("This page changed while it was loading. Reset the page or refresh to retry.")
@@ -344,10 +342,7 @@ if runs_page is not None:
         def format_run(run_id: int) -> str:
             run = runs_by_id[run_id]
             started_at = run["started_at"].replace("T", " ")[:16]
-            return (
-                f"#{run_id} · {run['pipeline_name']} · "
-                f"{run['status']} · {started_at}"
-            )
+            return f"#{run_id} · {run['pipeline_name']} · {run['status']} · {started_at}"
 
         selected_run_id = st.selectbox(
             "Select a pipeline run",

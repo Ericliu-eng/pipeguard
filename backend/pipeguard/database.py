@@ -25,7 +25,7 @@ def normalize_database_url(database_url: str) -> str:
     """
     for prefix in _POSTGRES_PREFIXES:
         if database_url.startswith(prefix):
-            return f"postgresql+psycopg://{database_url[len(prefix):]}"
+            return f"postgresql+psycopg://{database_url[len(prefix) :]}"
     return database_url
 
 
@@ -72,4 +72,3 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-
