@@ -45,7 +45,9 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Run Ruff
-        run: ruff check backend dashboard migrations tests
+        run: |
+          ruff check backend dashboard migrations tests
+          ruff format --check backend dashboard migrations tests
 
       - name: Run tests against SQLite
         run: pytest

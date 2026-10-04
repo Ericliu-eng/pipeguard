@@ -27,9 +27,7 @@ def test_postgres_urls_resolve_to_psycopg3(scheme: str) -> None:
     # with ModuleNotFoundError: No module named 'psycopg'.
     url = f"{scheme}://user:pass@host/db?sslmode=require"
 
-    assert normalize_database_url(url) == (
-        "postgresql+psycopg://user:pass@host/db?sslmode=require"
-    )
+    assert normalize_database_url(url) == ("postgresql+psycopg://user:pass@host/db?sslmode=require")
 
 
 def test_normalizing_is_idempotent() -> None:

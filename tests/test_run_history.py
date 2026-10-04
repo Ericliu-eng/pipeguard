@@ -80,9 +80,7 @@ def test_run_history_returns_deterministic_tie_ordering_and_global_summary(
     assert empty_page["has_more"] is False
 
 
-def test_run_history_filters_and_counts_the_matching_set(
-    client: TestClient, db: Session
-) -> None:
+def test_run_history_filters_and_counts_the_matching_set(client: TestClient, db: Session) -> None:
     matching = add_run(
         db,
         pipeline_name="orders",
@@ -138,9 +136,7 @@ def test_run_history_filters_and_counts_the_matching_set(
         "/runs/page",
         params={"pipeline_name": " orders "},
     )
-    assert [run["id"] for run in exact_name_response.json()["items"]] == [
-        spaced_name.id
-    ]
+    assert [run["id"] for run in exact_name_response.json()["items"]] == [spaced_name.id]
 
 
 @pytest.mark.parametrize(

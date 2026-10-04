@@ -45,8 +45,7 @@ _GUIDANCE: dict[str, _Guidance] = {
             "of the data — and every row that did arrive can still pass its own checks."
         ),
         steps=(
-            "Compare this run's row count with the previous successful runs of the same "
-            "pipeline.",
+            "Compare this run's row count with the previous successful runs of the same pipeline.",
             "Check the upstream response for truncation, throttling, or an error payload "
             "returned with a success status.",
             "Confirm that the requested entities, date range, and pagination did not change.",
