@@ -3,14 +3,13 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Response, status
-from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from pipeguard import __version__
+from pipeguard import __version__, docs_page
 from pipeguard.config import get_settings
 from pipeguard.database import get_db
 from pipeguard.routers.runs import router as runs_router
@@ -80,36 +79,10 @@ def dashboard() -> FileResponse:
 
 @app.get("/docs", include_in_schema=False)
 def api_docs() -> HTMLResponse:
-    """Swagger UI, restyled to match the dashboard.
-
-    The stock page is kept for its behavior; only a stylesheet and a header with
-    a way back to the dashboard are added after the stock styles.
-    """
-    page = get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=f"{settings.app_name} reference",
-        swagger_favicon_url="/static/favicon.svg",
-        swagger_ui_parameters={
-            "docExpansion": "list",
-            "defaultModelsExpandDepth": 0,
-            "displayRequestDuration": True,
-            "persistAuthorization": True,
-            "tryItOutEnabled": True,
-            "syntaxHighlight": {"theme": "nord"},
-        },
+    """An overview of the API in the dashboard's style, then the Swagger UI."""
+    return HTMLResponse(
+        docs_page.render(app.openapi(), app.openapi_url, f"{settings.app_name} reference")
     )
-    html = page.body.decode()
-    html = html.replace("</head>", '<link rel="stylesheet" href="/static/docs.css">\n</head>', 1)
-    html = html.replace(
-        "<body>",
-        '<body>\n<header class="pg-bar"><a class="pg-brand" href="/">'
-        '<img src="/static/favicon.svg" alt="" width="20" height="20">PipeGuard</a>'
-        '<span class="pg-sub">API reference</span>'
-        '<a class="pg-link" href="/">Dashboard</a>'
-        '<a class="pg-link" href="/openapi.json">OpenAPI JSON</a></header>',
-        1,
-    )
-    return HTMLResponse(html)
 
 
 @app.get(

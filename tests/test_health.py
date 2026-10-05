@@ -54,6 +54,7 @@ def test_ingest_key_is_declared_for_the_docs(client: TestClient) -> None:
         ("/static/app.js", "javascript"),
         ("/static/styles.css", "text/css"),
         ("/static/docs.css", "text/css"),
+        ("/static/docs.js", "javascript"),
         ("/static/favicon.svg", "image/svg+xml"),
     ],
 )

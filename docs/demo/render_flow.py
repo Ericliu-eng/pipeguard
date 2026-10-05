@@ -16,7 +16,10 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent
-W, H, S, FPS = 1200, 620, 2, 24  # S: supersampling factor for smooth edges
+W, H, FPS = 1200, 620, 24  # layout units; the output is ZOOM times larger
+ZOOM = 1.5  # 1800x930: sharp on high-density screens
+S = 3  # drawing scale, 2x the output: supersampling for smooth edges
+OUT = round(W * ZOOM), round(H * ZOOM)
 FADE_SECONDS = 0.3  # highlight transitions between beats
 
 BG, PANEL, SOFT, LINE = "#f7f8fa", "#ffffff", "#f3f5f8", "#d9dee6"
@@ -577,7 +580,7 @@ def draw_frame(beat, t, final=False):
     )
     legend = "Solid: run data   Dashed: reads and comparisons"
     f.text(1170 - f.width(legend, 11), 581, legend, 11, DIM)
-    return f.image.resize((W, H), Image.LANCZOS)
+    return f.image.resize(OUT, Image.LANCZOS)
 
 
 def main():
@@ -589,16 +592,16 @@ def main():
     final = draw_frame(len(BEATS) - 1, 1.0, final=True)
     frames += [final] * round(HOLD_SECONDS * FPS)
     # Loop seam: fade out to the empty canvas, then fade the opening frame in.
-    blank, fade = Image.new("RGB", (W, H), BG), round(FADE_SECONDS * FPS)
+    blank, fade = Image.new("RGB", OUT, BG), round(FADE_SECONDS * FPS)
     frames += [Image.blend(final, blank, ease((i + 1) / fade)) for i in range(fade)]
     frames[:fade] = [Image.blend(blank, frames[i], ease((i + 1) / fade)) for i in range(fade)]
 
     # One shared palette keeps colors stable between frames (no flicker).
     picks = frames[:: max(1, len(frames) // 16)][:16]
-    sample = Image.new("RGB", (W, H * len(picks)))
+    sample = Image.new("RGB", (OUT[0], OUT[1] * len(picks)))
     for i, frame in enumerate(picks):
-        sample.paste(frame, (0, i * H))
-    palette = sample.quantize(colors=176, method=Image.Quantize.MEDIANCUT)
+        sample.paste(frame, (0, i * OUT[1]))
+    palette = sample.quantize(colors=256, method=Image.Quantize.MEDIANCUT)
     quantized = [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in frames]
     quantized[0].save(
         ROOT / "pipeguard-flow.gif",
