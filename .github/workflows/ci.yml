@@ -46,8 +46,8 @@ jobs:
 
       - name: Run Ruff
         run: |
-          ruff check backend dashboard migrations tests
-          ruff format --check backend dashboard migrations tests
+          ruff check backend migrations tests
+          ruff format --check backend migrations tests
 
       - name: Run tests against SQLite
         run: pytest

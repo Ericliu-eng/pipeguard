@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PipeGuard</title>
+  <meta name="description" content="Run monitoring for data pipelines: run history, cross-run anomaly detection, and incident analysis.">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 5 7v8c0 7 4.7 12 11 14 6.3-2 11-7 11-14V7z"/><path class="brand-check" d="m11 16 3.5 3.5L21.5 12"/></svg>
+        PipeGuard
+        <span class="brand-description">Run monitoring for data pipelines</span>
+      </a>
+      <div class="connection" id="connection" role="status" aria-live="polite">
+        <span class="status-dot"></span><span id="connection-text">Connecting…</span>
+      </div>
+      <a class="docs-link" href="/docs">API docs ↗</a>
+      <a class="docs-link" href="https://github.com/Ericliu-eng/pipeguard">GitHub ↗</a>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">RUN HISTORY</p>
+        <h1>Pipeline runs</h1>
+        <p class="lede">Every run reported here is compared with its pipeline's history. A run can succeed and still deliver bad data, so execution and quality are tracked separately.</p>
+      </div>
+      <form class="demo" id="demo-form">
+        <fieldset class="segmented" aria-label="Demo scenario">
+          <label><input type="radio" name="scenario" value="normal" checked><span>Normal</span></label>
+          <label><input type="radio" name="scenario" value="quality_issue"><span>Bad data</span></label>
+          <label><input type="radio" name="scenario" value="pipeline_failure"><span>Failure</span></label>
+        </fieldset>
+        <button class="button primary" type="submit" id="demo-button">Run demo pipeline</button>
+      </form>
+    </div>
+
+    <section class="metrics" aria-label="Summary">
+      <div><span class="metric-label" id="metric-total-label">Runs</span><strong data-metric="total">–</strong><span class="metric-detail" id="metric-total-detail">all pipelines</span></div>
+      <div><span class="metric-label">Success rate</span><strong data-metric="rate">–</strong><span class="metric-detail">runs that finished</span></div>
+      <div><span class="metric-label">Failed runs</span><strong data-metric="failed" class="tone-red">–</strong><span class="metric-detail">stopped with an error</span></div>
+      <div><span class="metric-label">Quality incidents</span><strong data-metric="incidents" class="tone-amber">–</strong><span class="metric-detail">succeeded with a failed check</span></div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel runs" aria-labelledby="runs-heading">
+        <div class="panel-head">
+          <h2 id="runs-heading">Runs</h2>
+          <form class="filters" id="filters">
+            <label class="sr-only" for="filter-pipeline">Pipeline</label>
+            <select id="filter-pipeline" name="pipeline"><option value="">All pipelines</option></select>
+            <label class="sr-only" for="filter-status">Execution status</label>
+            <select id="filter-status" name="status">
+              <option value="">Any status</option><option value="SUCCESS">Success</option><option value="FAILED">Failed</option><option value="RUNNING">Running</option>
+            </select>
+            <label class="sr-only" for="filter-quality">Quality status</label>
+            <select id="filter-quality" name="quality">
+              <option value="">Any quality</option><option value="PASS">Pass</option><option value="WARN">Warn</option><option value="FAIL">Fail</option><option value="NOT_EVALUATED">Not evaluated</option>
+            </select>
+          </form>
+        </div>
+        <div class="run-header" aria-hidden="true"><span>Run</span><span>Pipeline</span><span>Started</span><span>Rows</span><span>Status</span></div>
+        <ol class="run-list" id="run-list" aria-label="Runs, newest first"></ol>
+        <div class="panel-foot">
+          <span id="page-info" class="muted"></span>
+          <div class="pager">
+            <button class="button secondary small" id="prev-page" type="button">Previous</button>
+            <button class="button secondary small" id="next-page" type="button">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel detail" id="detail" aria-live="polite" aria-label="Selected run"></aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <template id="skeleton-row">
+    <li class="run-row skeleton"><span></span><span></span><span></span><span></span><span></span></li>
+  </template>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

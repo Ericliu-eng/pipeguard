@@ -1,6 +1,0 @@
-# Pinned to the minor release, matching backend/pyproject.toml. These were
-# previously unversioned, so every dashboard image rebuilt against whatever was
-# newest that day.
-streamlit>=1.60,<1.61
-requests>=2.34,<2.35
-pandas>=3.0,<3.1

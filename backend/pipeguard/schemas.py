@@ -4,6 +4,10 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+class ErrorResponse(BaseModel):
+    detail: str = Field(examples=["Run not found"])
+
+
 class HealthResponse(BaseModel):
     status: str
     service: str
@@ -14,11 +18,11 @@ class HealthResponse(BaseModel):
 class QualityCheckReport(BaseModel):
     """One check a reporting pipeline already evaluated for itself."""
 
-    check_name: str = Field(min_length=1, max_length=120)
+    check_name: str = Field(min_length=1, max_length=120, examples=["not_null"])
     status: Literal["PASS", "WARN", "FAIL"]
-    metric_value: float
-    threshold: float
-    message: str = Field(min_length=1)
+    metric_value: float = Field(description="What the check measured, e.g. a null rate.")
+    threshold: float = Field(description="The limit the metric was compared against.")
+    message: str = Field(min_length=1, examples=["market_bars.ts has no nulls."])
 
 
 class RunReportRequest(BaseModel):
@@ -29,15 +33,47 @@ class RunReportRequest(BaseModel):
     computed on this side, because a pipeline cannot see its own past runs.
     """
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "pipeline_name": "market_data_lakehouse_pipeline",
+                    "external_run_id": "market-data-2026-09-28T12:00:00Z",
+                    "status": "SUCCESS",
+                    "started_at": "2026-09-28T12:00:00Z",
+                    "finished_at": "2026-09-28T12:00:04Z",
+                    "rows_processed": 500,
+                    "checks": [
+                        {
+                            "check_name": "not_null",
+                            "status": "PASS",
+                            "metric_value": 0.0,
+                            "threshold": 0.0,
+                            "message": "market_bars.ts has no nulls.",
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+
     pipeline_name: str = Field(min_length=1, max_length=120)
-    external_run_id: str = Field(min_length=1, max_length=200)
+    external_run_id: str = Field(
+        min_length=1,
+        max_length=200,
+        description="The pipeline's own ID for this run. Retries must reuse it.",
+    )
     status: Literal["SUCCESS", "FAILED"]
-    started_at: datetime
-    finished_at: datetime
+    started_at: datetime = Field(description="Must include a timezone.")
+    finished_at: datetime = Field(description="Must include a timezone; not before started_at.")
     rows_processed: int = Field(ge=0)
     error_type: str | None = Field(default=None, max_length=120)
     error_message: str | None = None
-    checks: list[QualityCheckReport] = Field(default_factory=list)
+    checks: list[QualityCheckReport] = Field(
+        default_factory=list,
+        description="Checks the pipeline evaluated on its own data. "
+        "PipeGuard adds the row-count anomaly check itself.",
+    )
 
     @model_validator(mode="after")
     def _check_ordering(self) -> Self:

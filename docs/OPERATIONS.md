@@ -6,8 +6,8 @@
 docker compose up --build
 ```
 
-- API: `http://127.0.0.1:8000` (docs at `/docs`)
-- Dashboard: `http://127.0.0.1:8501`
+- Dashboard: `http://127.0.0.1:8000`
+- API docs: `http://127.0.0.1:8000/docs`
 
 The API container applies Alembic migrations before it starts the server, and stores a
 local SQLite database in a named volume. Values from `.env` — quality thresholds, the
@@ -23,13 +23,8 @@ alembic upgrade head
 uvicorn pipeguard.main:app --app-dir backend --reload
 ```
 
-Then, in a second terminal:
-
-```powershell
-python -m pip install -r dashboard/requirements.txt
-$env:API_BASE_URL = "http://127.0.0.1:8000"
-streamlit run dashboard/app.py
-```
+The dashboard is served by the API at `http://127.0.0.1:8000`; there is nothing else to
+start.
 
 ## Configuration
 
@@ -70,7 +65,7 @@ the old format, on both SQLite and PostgreSQL, rather than on empty tables.
 
 ## Deployment
 
-Production runs on Render: the API and the dashboard are separate services, and the
+Production runs on Render as a single service — the API also serves the dashboard — and the
 database is a Neon PostgreSQL instance.
 
 - **Driver resolution.** `DATABASE_URL` can be pasted from the provider unedited. Any
@@ -87,7 +82,7 @@ database is a Neon PostgreSQL instance.
 
 ```bash
 pytest
-ruff check backend dashboard migrations tests
+ruff check backend migrations tests
 ```
 
 The suite runs against in-memory SQLite by default. Point it at PostgreSQL to exercise the

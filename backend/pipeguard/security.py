@@ -1,15 +1,26 @@
 import secrets
 from typing import Annotated
 
-from fastapi import Header, HTTPException, status
+from fastapi import HTTPException, Security, status
+from fastapi.security import APIKeyHeader
 
 from pipeguard.config import get_settings
 
 API_KEY_HEADER = "X-API-Key"
 
+# Declared as a security scheme rather than a plain header so the API docs show
+# an Authorize button and send the key with every request tried from there.
+# auto_error is off because a missing key must answer 401 with the same body as
+# a wrong one, and an unconfigured server must answer 503 before either.
+api_key_header = APIKeyHeader(
+    name=API_KEY_HEADER,
+    auto_error=False,
+    description="Shared secret set by `INGEST_API_KEY` on the server.",
+)
+
 
 def require_ingest_key(
-    x_api_key: Annotated[str | None, Header(alias=API_KEY_HEADER)] = None,
+    x_api_key: Annotated[str | None, Security(api_key_header)] = None,
 ) -> None:
     """Guard the endpoint that accepts run reports from outside.
 
