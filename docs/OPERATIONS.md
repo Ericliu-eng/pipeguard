@@ -98,3 +98,13 @@ GitHub Actions runs Ruff, migrates a PostgreSQL 18 service, and runs the full su
 both backends. Both runs matter: a SQLite-only suite never loads the PostgreSQL driver, so
 it cannot catch a driver or dialect problem — which is exactly how a driver change once
 reached production with every check green.
+
+## Known limitations and next steps
+
+- The bundled pipeline generates synthetic rows. Real pipelines integrate through
+  `POST /runs`; there is no packaged client SDK yet.
+- Incident analysis is rule-based; it does not call an LLM.
+- Ingestion uses one shared API key, with no user accounts or rate limiting.
+- `/health` can report a failure, but nothing watches it and raises an alert yet — which is
+  how an earlier outage went unnoticed for two months. Alerting is the next gap to close.
+- Quality thresholds are set through environment variables, not in the dashboard.
