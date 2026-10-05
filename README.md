@@ -1,5 +1,10 @@
 # PipeGuard
 
+[![CI](https://github.com/Ericliu-eng/pipeguard/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ericliu-eng/pipeguard/actions/workflows/ci.yml)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab)
+![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-336791)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688)
+
 **Run monitoring for data pipelines.** Pipelines report each run to PipeGuard over an
 authenticated API. It keeps their history, catches what a single run cannot see about
 itself — such as a row count that collapsed compared with previous runs — and explains each
@@ -10,12 +15,13 @@ It is the monitoring layer for
 warehouse: each run of its CLI orchestrator reports here with its row count and quality-check
 results. A bundled synthetic pipeline makes every scenario reproducible on its own.
 
-[![CI](https://github.com/Ericliu-eng/pipeguard/actions/workflows/ci.yml/badge.svg)](https://github.com/Ericliu-eng/pipeguard/actions/workflows/ci.yml)
-· Tested on SQLite and PostgreSQL 18
-· [Live dashboard](https://pipeguard-dashboard-iiub.onrender.com)
+[Live dashboard](https://pipeguard-fn1b.onrender.com)
 · [API docs](https://pipeguard-fn1b.onrender.com/docs)
+· Tested on SQLite and PostgreSQL 18
 
-![PipeGuard dashboard showing run history, quality status, and KPIs](docs/assets/pipeguard-dashboard.jpg)
+![Animated flow: a pipeline reports a run; the API checks its key and stores it; a retry with the same data returns the stored run and a retry with different data is rejected with 409; the pipeline's own checks pass; PipeGuard compares the row count with the last five healthy runs and the anomaly check fails; the incident analysis names the failed check; the dashboard shows SUCCESS and quality FAIL side by side](docs/demo/pipeguard-flow.gif)
+
+<sub>Illustrated flow, not a recording. Rendered by [`docs/demo/render_flow.py`](docs/demo/render_flow.py) · [static frame](docs/demo/pipeguard-flow.png)</sub>
 
 ## Engineering highlights
 
@@ -44,7 +50,7 @@ results. A bundled synthetic pipeline makes every scenario reproducible on its o
 ```mermaid
 flowchart LR
     pipeline["External pipelines<br/>e.g. de-lakehouse"] -- "POST /runs<br/>API key · idempotent" --> ingest
-    operator["Operator"] --> dashboard["Streamlit dashboard"]
+    operator["Operator"] --> dashboard["Dashboard<br/>served by the API"]
     dashboard -- "REST" --> history
 
     subgraph api["PipeGuard API · FastAPI"]
@@ -64,16 +70,18 @@ flowchart LR
 | API | Python 3.11, FastAPI, Pydantic, SQLAlchemy 2.1 |
 | Database | PostgreSQL 18 on Neon via psycopg 3; SQLite for local development |
 | Migrations | Alembic |
-| Dashboard | Streamlit, Pandas |
+| Dashboard | HTML, CSS, and vanilla JavaScript, served by FastAPI |
 | Testing and CI | pytest, Ruff, GitHub Actions against SQLite and PostgreSQL |
 | Deployment | Docker, Docker Compose, Render |
 
 ## Try it
 
-**Live.** Open the [dashboard](https://pipeguard-dashboard-iiub.onrender.com), pick a
-scenario — `normal`, `pipeline_failure`, or `quality_issue` — click **Run Pipeline**, then
-**Analyze Selected Run**. Free instances sleep when idle, so the first request can take
-about a minute.
+**Live.** Open the [dashboard](https://pipeguard-fn1b.onrender.com), pick a scenario —
+**Normal**, **Bad data**, or **Failure** — and click **Run demo pipeline**. Select a run to
+see its row count against recent runs and its checks, then click **Analyze run**. The free
+instance sleeps when idle, so the first request can take about a minute.
+
+![PipeGuard dashboard: KPIs, the run list, and run 12 selected, whose row count fell 77.6% below its recent average and failed the anomaly check](docs/assets/pipeguard-dashboard.png)
 
 **Locally.**
 
@@ -81,8 +89,7 @@ about a minute.
 docker compose up --build
 ```
 
-The API serves on `http://127.0.0.1:8000` (docs at `/docs`) and the dashboard on
-`http://127.0.0.1:8501`.
+The dashboard is at `http://127.0.0.1:8000` and the API docs at `/docs`.
 
 **Tests.** `pytest` runs the suite against SQLite; setting `TEST_DATABASE_URL` runs the same
 suite against PostgreSQL. See [Operations](docs/OPERATIONS.md#testing).
@@ -98,7 +105,7 @@ suite against PostgreSQL. See [Operations](docs/OPERATIONS.md#testing).
 
 ```text
 backend/pipeguard/   FastAPI app: routes, models, ingestion, quality checks, incident analysis
-dashboard/           Streamlit dashboard
+  static/            Dashboard: one HTML page, its stylesheet, and its script
 migrations/          Alembic migrations
 tests/               API, ingestion, migration, quality, analysis, and retention tests
 docs/                Reference documentation
