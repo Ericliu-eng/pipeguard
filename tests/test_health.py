@@ -18,12 +18,51 @@ class _UnreachableSession:
         pass
 
 
-def test_root_redirects_to_the_docs(client: TestClient) -> None:
-    # The README links here as "open the API"; it used to answer 404.
+def test_root_serves_the_dashboard(client: TestClient) -> None:
     response = client.get("/", follow_redirects=False)
 
-    assert response.status_code == 307
-    assert response.headers["location"] == "/docs"
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert '<script src="/static/app.js"' in response.text
+
+
+def test_api_docs_use_the_dashboard_styling(client: TestClient) -> None:
+    response = client.get("/docs")
+
+    assert response.status_code == 200
+    assert '<link rel="stylesheet" href="/static/docs.css">' in response.text
+    assert 'href="/">Dashboard</a>' in response.text
+
+
+def test_ingest_key_is_declared_for_the_docs(client: TestClient) -> None:
+    # Declared as a security scheme, the docs page offers an Authorize button.
+    schema = client.get("/openapi.json").json()
+
+    scheme = schema["components"]["securitySchemes"]["APIKeyHeader"]
+    assert scheme == {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Shared secret set by `INGEST_API_KEY` on the server.",
+    }
+    assert schema["paths"]["/runs"]["post"]["security"] == [{"APIKeyHeader": []}]
+
+
+@pytest.mark.parametrize(
+    ("path", "content_type"),
+    [
+        ("/static/app.js", "javascript"),
+        ("/static/styles.css", "text/css"),
+        ("/static/docs.css", "text/css"),
+        ("/static/favicon.svg", "image/svg+xml"),
+    ],
+)
+def test_dashboard_assets_are_served(client: TestClient, path: str, content_type: str) -> None:
+    # The page is useless if an asset it references is missing from the package.
+    response = client.get(path)
+
+    assert response.status_code == 200
+    assert content_type in response.headers["content-type"]
 
 
 def test_health_reports_ok_when_the_database_answers(client: TestClient) -> None:

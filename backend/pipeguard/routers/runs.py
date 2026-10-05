@@ -13,6 +13,7 @@ from pipeguard.models import (
     RunStatus,
 )
 from pipeguard.schemas import (
+    ErrorResponse,
     IncidentAnalysisResponse,
     PipelineRunPageResponse,
     PipelineRunResponse,
@@ -25,8 +26,10 @@ from pipeguard.services.incident_analysis import build_incident_analysis
 from pipeguard.services.ingest import RunReportConflictError, record_reported_run
 from pipeguard.services.pipeline import DataScenario, run_demo_pipeline
 
-router = APIRouter(prefix="/runs", tags=["runs"])
+router = APIRouter(prefix="/runs")
 DbSession = Annotated[Session, Depends(get_db)]
+
+NOT_FOUND = {404: {"model": ErrorResponse, "description": "No run with this ID"}}
 
 
 @router.post(
@@ -34,6 +37,28 @@ DbSession = Annotated[Session, Depends(get_db)]
     response_model=PipelineRunResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_ingest_key)],
+    tags=["Ingest"],
+    summary="Report a finished run",
+    description=(
+        "Record a run your pipeline already executed, with the checks it evaluated on its own "
+        "data. PipeGuard adds a `row_count_anomaly` check that compares `rows_processed` with "
+        "the pipeline's recent healthy runs, and sets `quality_status` from all the checks. "
+        "Retries are safe: send the same `external_run_id` with the same data and the stored "
+        "run comes back with `200`. A failed run gets no anomaly check, since zero rows means "
+        "it stopped, not that the source shrank."
+    ),
+    responses={
+        200: {"model": PipelineRunResponse, "description": "Retry of a run already recorded"},
+        401: {"model": ErrorResponse, "description": "Missing or wrong `X-API-Key`"},
+        409: {
+            "model": ErrorResponse,
+            "description": "`external_run_id` already recorded with different data",
+        },
+        503: {
+            "model": ErrorResponse,
+            "description": "`INGEST_API_KEY` is not set, so ingestion is closed",
+        },
+    },
 )
 def report_run(report: RunReportRequest, db: DbSession, response: Response) -> PipelineRun:
     """Record a run that an external pipeline already executed.
@@ -51,7 +76,18 @@ def report_run(report: RunReportRequest, db: DbSession, response: Response) -> P
     return run
 
 
-@router.post("/demo", response_model=PipelineRunResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/demo",
+    response_model=PipelineRunResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Demo"],
+    summary="Run the synthetic demo pipeline",
+    description=(
+        "Run a small bundled pipeline end to end. `data_scenario=quality_failure` produces "
+        "nulls, duplicates, and stale rows; `simulate_failure=true` makes the run fail with "
+        "an upstream timeout. Results land in `demo_events_pipeline`."
+    ),
+)
 def create_demo_run(
     db: DbSession,
     simulate_failure: bool = Query(default=False),
@@ -64,7 +100,13 @@ def create_demo_run(
     )
 
 
-@router.get("", response_model=list[PipelineRunResponse])
+@router.get(
+    "",
+    response_model=list[PipelineRunResponse],
+    tags=["Runs"],
+    summary="List recent runs",
+    description="Newest first, as a plain array. Prefer `GET /runs/page` for filters and KPIs.",
+)
 def list_runs(db: DbSession, limit: int = Query(default=50, ge=1, le=200)) -> list[PipelineRun]:
     statement = (
         select(PipelineRun)
@@ -74,7 +116,17 @@ def list_runs(db: DbSession, limit: int = Query(default=50, ge=1, le=200)) -> li
     return list(db.scalars(statement))
 
 
-@router.get("/page", response_model=PipelineRunPageResponse)
+@router.get(
+    "/page",
+    response_model=PipelineRunPageResponse,
+    tags=["Runs"],
+    summary="Search run history",
+    description=(
+        "Filter by exact `pipeline_name`, `status`, and `quality_status`, newest first. "
+        "`total` and `summary` count every matching run, not just this page, and come from "
+        "the same query as `items`."
+    ),
+)
 def list_run_page(
     db: DbSession,
     pipeline_name: str | None = Query(default=None, min_length=1, max_length=120),
@@ -160,7 +212,13 @@ def list_run_page(
     )
 
 
-@router.get("/{run_id}", response_model=PipelineRunResponse)
+@router.get(
+    "/{run_id}",
+    response_model=PipelineRunResponse,
+    tags=["Runs"],
+    summary="Get a run",
+    responses=NOT_FOUND,
+)
 def get_run(run_id: int, db: DbSession) -> PipelineRun:
     run = db.get(PipelineRun, run_id)
     if run is None:
@@ -168,7 +226,14 @@ def get_run(run_id: int, db: DbSession) -> PipelineRun:
     return run
 
 
-@router.get("/{run_id}/checks", response_model=list[QualityCheckResponse])
+@router.get(
+    "/{run_id}/checks",
+    response_model=list[QualityCheckResponse],
+    tags=["Runs"],
+    summary="List a run's quality checks",
+    description="The pipeline's own checks plus the ones PipeGuard computed, in order.",
+    responses=NOT_FOUND,
+)
 def get_run_checks(run_id: int, db: DbSession) -> list[QualityCheck]:
     if db.get(PipelineRun, run_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
@@ -186,7 +251,15 @@ def _latest_analysis(db: Session, run_id: int) -> IncidentAnalysis | None:
     return db.scalars(statement).first()
 
 
-@router.get("/{run_id}/analysis", response_model=IncidentAnalysisResponse)
+@router.get(
+    "/{run_id}/analysis",
+    response_model=IncidentAnalysisResponse,
+    tags=["Analysis"],
+    summary="Get a run's incident analysis",
+    responses={
+        404: {"model": ErrorResponse, "description": "No such run, or not analyzed yet"},
+    },
+)
 def get_run_analysis(run_id: int, db: DbSession) -> IncidentAnalysis:
     if db.get(PipelineRun, run_id) is None:
         raise HTTPException(
@@ -209,6 +282,18 @@ def get_run_analysis(run_id: int, db: DbSession) -> IncidentAnalysis:
     "/{run_id}/analyze",
     response_model=IncidentAnalysisResponse,
     status_code=status.HTTP_201_CREATED,
+    tags=["Analysis"],
+    summary="Analyze a run",
+    description=(
+        "Explain what went wrong in terms of the check that failed: severity, likely causes, "
+        "and next steps. Rule-based and deterministic. A finished run never changes, so a "
+        "repeat call returns the stored analysis with `200` instead of creating another."
+    ),
+    responses={
+        200: {"model": IncidentAnalysisResponse, "description": "Already analyzed"},
+        **NOT_FOUND,
+        409: {"model": ErrorResponse, "description": "The run is still in progress"},
+    },
 )
 def analyze_run(run_id: int, db: DbSession, response: Response) -> IncidentAnalysis:
     run = db.get(PipelineRun, run_id)
