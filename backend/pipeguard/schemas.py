@@ -20,8 +20,14 @@ class QualityCheckReport(BaseModel):
 
     check_name: str = Field(min_length=1, max_length=120, examples=["not_null"])
     status: Literal["PASS", "WARN", "FAIL"]
-    metric_value: float = Field(description="What the check measured, e.g. a null rate.")
-    threshold: float = Field(description="The limit the metric was compared against.")
+    # NaN and infinity are rejected: SQLite stores NaN as NULL and JSON cannot
+    # carry either, so accepting them turned a bad report into a 500.
+    metric_value: float = Field(
+        allow_inf_nan=False, description="What the check measured, e.g. a null rate."
+    )
+    threshold: float = Field(
+        allow_inf_nan=False, description="The limit the metric was compared against."
+    )
     message: str = Field(min_length=1, examples=["market_bars.ts has no nulls."])
 
 

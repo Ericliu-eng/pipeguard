@@ -107,6 +107,7 @@ def check_row_count_anomaly(
     baseline = mean(historical_counts)
     drop_ratio = (baseline - current_count) / baseline if baseline else 0.0
     status = CheckStatus.failed if drop_ratio > threshold else CheckStatus.passed
+    change = f"{drop_ratio:.1%} decrease" if drop_ratio >= 0 else f"{-drop_ratio:.1%} increase"
     return QualityCheckResult(
         check_name="row_count_anomaly",
         metric_value=drop_ratio,
@@ -114,7 +115,7 @@ def check_row_count_anomaly(
         status=status,
         message=(
             f"Current row count is {current_count}; historical average is {baseline:.1f} "
-            f"({drop_ratio:.1%} decrease)."
+            f"({change})."
         ),
     )
 

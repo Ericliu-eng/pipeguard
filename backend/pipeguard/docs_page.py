@@ -93,7 +93,8 @@ def overview(schema: dict[str, Any]) -> str:
       <section class="pg-card pg-note"><h2>Good to know</h2>
         <p>Re-sending the same <code>external_run_id</code> with the same data is safe: you get
         the stored run back. Different data under that ID is rejected with <code>409</code>.
-        Errors return <code>{{"detail": "..."}}</code> with 401, 404, 409 or 422.</p></section>
+        Errors return <code>{{"detail": ...}}</code>: a message for 401, 404, 409 and 503, a
+        list of field errors for 422.</p></section>
     </div>
   </div>
 

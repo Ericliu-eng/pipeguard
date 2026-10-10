@@ -84,9 +84,11 @@ def record_reported_run(db: Session, report: RunReportRequest) -> tuple[Pipeline
         db.add_all(checks)
 
     db.commit()
+    # Refresh before pruning: a backfilled run older than the retention window
+    # is pruned at once, and refreshing a deleted row raised instead of answering.
+    db.refresh(run)
 
     prune_old_runs(db, limit=get_settings().run_retention_limit)
-    db.refresh(run)
 
     return run, True
 

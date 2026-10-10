@@ -1,9 +1,12 @@
 import logging
+import math
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Response, status
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import Depends, FastAPI, Request, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -60,6 +63,29 @@ app = FastAPI(
     docs_url=None,  # served below, with the dashboard's styling
 )
 app.include_router(runs_router)
+
+
+def _json_safe(value: object) -> object:
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """The stock 422, except that echoed inputs are made JSON-safe.
+
+    A 422 repeats each invalid input back, and a NaN or infinity cannot be
+    written as JSON, so the rejection of such a report failed with a 500.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={"detail": _json_safe(jsonable_encoder(exc.errors()))},
+    )
 
 
 STATIC_DIR = Path(__file__).parent / "static"

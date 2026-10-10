@@ -23,7 +23,7 @@ Included:
 
 Not included:
 
-- Authentication or multi-user permissions
+- User accounts or multi-user permissions (ingestion uses one shared API key)
 - Pipeline registration and per-pipeline policy management
 - Automated remediation
 - Complex anomaly-detection models

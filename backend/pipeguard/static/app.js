@@ -307,10 +307,12 @@ function trendHtml(run, history, checks) {
   const index = history.findIndex((item) => item.id === run.id);
   if (index === -1) return "";
   const window = history.slice(index, index + TREND_RUNS).reverse();
-  const before = window.slice(0, -1);
-  const baselineRuns = before
+  // The server's baseline is the last healthy runs however far back they are,
+  // not just those in the drawn window, so search all of the fetched history.
+  const baselineRuns = history
+    .slice(index + 1)
     .filter((item) => item.status === "SUCCESS" && ["PASS", "WARN"].includes(item.quality_status))
-    .slice(-BASELINE_RUNS);
+    .slice(0, BASELINE_RUNS);
   const baseline = baselineRuns.length
     ? baselineRuns.reduce((sum, item) => sum + item.rows_processed, 0) / baselineRuns.length
     : null;
@@ -334,7 +336,7 @@ function trendHtml(run, history, checks) {
   if (anomaly && Number.isFinite(anomaly.metric_value) && baseline != null) {
     note = drop
       ? `<p class="trend-note" style="color:var(--red)">${(anomaly.metric_value * 100).toFixed(1)}% below the average of the last healthy runs (limit ${(anomaly.threshold * 100).toFixed(0)}%).</p>`
-      : `<p class="trend-note">Within ${(anomaly.threshold * 100).toFixed(0)}% of the average of the last healthy runs.</p>`;
+      : `<p class="trend-note">Not more than ${(anomaly.threshold * 100).toFixed(0)}% below the average of the last healthy runs.</p>`;
   } else if (anomaly) {
     note = `<p class="trend-note">${esc(anomaly.message)}</p>`;
   }
