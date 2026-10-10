@@ -16,7 +16,9 @@ and a human-readable message. Demo runs write `null_rate`, `duplicate_rate`, `fr
 
 ## `incident_analyses`
 
-One analysis per run, with severity, a summary, and model provenance. `likely_causes` and
+At most one analysis per run — the schema allows several, but `POST /runs/{id}/analyze`
+returns the stored one instead of adding another — with severity, a summary, and model
+provenance. `likely_causes` and
 `recommended_steps` are JSON arrays, with advice specific to each check that failed.
 
 Relationships:

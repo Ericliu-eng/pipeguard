@@ -46,6 +46,13 @@ def test_row_count_warns_without_history() -> None:
     assert result.status is CheckStatus.warning
 
 
+def test_row_count_increase_is_described_as_an_increase() -> None:
+    result = check_row_count_anomaly(900, historical_counts=[500], threshold=0.3)
+
+    assert result.status is CheckStatus.passed
+    assert result.message.endswith("(80.0% increase).")
+
+
 def test_row_count_fails_for_large_drop() -> None:
     result = check_row_count_anomaly(6, historical_counts=[10, 10, 10], threshold=0.3)
 

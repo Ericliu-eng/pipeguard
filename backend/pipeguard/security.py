@@ -36,8 +36,10 @@ def require_ingest_key(
         )
 
     # Constant-time comparison: a plain == leaks the key a character at a time
-    # to anyone who can measure the response.
-    if not secrets.compare_digest(x_api_key or "", settings.ingest_api_key):
+    # to anyone who can measure the response. Compared as bytes because
+    # compare_digest raises on non-ASCII strings, which turned a wrong key into a 500.
+    supplied = (x_api_key or "").encode()
+    if not secrets.compare_digest(supplied, settings.ingest_api_key.encode()):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key",

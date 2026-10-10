@@ -3,6 +3,7 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from pipeguard.config import Settings, get_settings
 from pipeguard.database import Base, get_db, normalize_database_url
 from pipeguard.main import app
 from sqlalchemy import Engine, create_engine
@@ -27,6 +28,15 @@ def create_test_engine() -> Engine:
             poolclass=StaticPool,
         )
     return create_engine(url)
+
+
+@pytest.fixture(autouse=True)
+def default_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Settings read .env, and the docs tell developers to set INGEST_API_KEY
+    # there. Without this, a local .env changed what the tests asserted.
+    settings = get_settings()
+    for name, field in Settings.model_fields.items():
+        monkeypatch.setattr(settings, name, field.default)
 
 
 @pytest.fixture

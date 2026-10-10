@@ -31,7 +31,7 @@ behind it no longer existed.
 `POST /runs` records a run that a pipeline has already executed. The pipeline sends what
 only it knows — its timings, row count, errors, and the checks it evaluated on its own
 data. PipeGuard then adds the row-count anomaly check, which compares the run with that
-pipeline's previous successful runs: history a single run has no way to see.
+pipeline's previous healthy runs: history a single run has no way to see.
 
 ```json
 {

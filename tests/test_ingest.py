@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -185,6 +186,57 @@ def test_reusing_an_external_run_id_for_different_data_is_rejected(
 
     assert conflict.status_code == 409
     assert "different run data" in conflict.json()["detail"]
+
+
+def test_a_non_ascii_key_is_rejected_not_crashed_on(
+    client: TestClient, report: dict[str, Any], with_api_key: Callable[[], None]
+) -> None:
+    with_api_key()
+
+    response = client.post("/runs", json=report, headers={"X-API-Key": "é".encode("latin-1")})
+
+    assert response.status_code == 401
+
+
+def test_a_check_metric_must_be_a_finite_number(
+    client: TestClient, report: dict[str, Any], with_api_key: Callable[[], None]
+) -> None:
+    with_api_key()
+    body = json.dumps({**report, "checks": [{**report["checks"][0], "metric_value": float("nan")}]})
+
+    response = client.post(
+        "/runs",
+        content=body,
+        headers={"X-API-Key": API_KEY, "Content-Type": "application/json"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_a_backfilled_run_outside_the_retention_window_is_still_answered(
+    client: TestClient,
+    report: dict[str, Any],
+    with_api_key: Callable[[], None],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with_api_key()
+    monkeypatch.setattr(get_settings(), "run_retention_limit", 1)
+    headers = {"X-API-Key": API_KEY}
+    client.post("/runs", json=report, headers=headers)
+    started_at = datetime(2026, 9, 27, 12, 0, tzinfo=UTC)
+    older = {
+        **report,
+        "external_run_id": "backfill-2026-09-27",
+        "started_at": started_at.isoformat(),
+        "finished_at": (started_at + timedelta(seconds=4)).isoformat(),
+    }
+
+    response = client.post("/runs", json=older, headers=headers)
+
+    # It is pruned at once, being older than the one run kept, but the report
+    # itself was valid and must not answer with a 500.
+    assert response.status_code == 201
+    assert response.json()["external_run_id"] == "backfill-2026-09-27"
 
 
 def test_report_timestamps_must_include_a_timezone(
