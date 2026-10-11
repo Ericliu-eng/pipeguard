@@ -24,6 +24,7 @@ from pipeguard.schemas import (
 from pipeguard.security import require_ingest_key
 from pipeguard.services.incident_analysis import build_incident_analysis
 from pipeguard.services.ingest import RunReportConflictError, record_reported_run
+from pipeguard.services.llm_analysis import enrich_analysis
 from pipeguard.services.pipeline import DataScenario, run_demo_pipeline
 
 router = APIRouter(prefix="/runs")
@@ -286,7 +287,8 @@ def get_run_analysis(run_id: int, db: DbSession) -> IncidentAnalysis:
     summary="Analyze a run",
     description=(
         "Explain what went wrong in terms of the check that failed: severity, likely causes, "
-        "and next steps. Rule-based and deterministic. A finished run never changes, so a "
+        "and next steps. Optional LLM explanation with rule-based fallback. A finished run "
+        "never changes, so a "
         "repeat call returns the stored analysis with `200` instead of creating another."
     ),
     responses={
@@ -321,7 +323,7 @@ def analyze_run(run_id: int, db: DbSession, response: Response) -> IncidentAnaly
     statement = select(QualityCheck).where(QualityCheck.run_id == run_id).order_by(QualityCheck.id)
     checks = list(db.scalars(statement))
 
-    analysis = build_incident_analysis(run, checks)
+    analysis = enrich_analysis(build_incident_analysis(run, checks), run, checks)
 
     db.add(analysis)
     db.commit()

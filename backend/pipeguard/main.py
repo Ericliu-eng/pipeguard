@@ -49,7 +49,7 @@ data passed. A run can succeed and still deliver bad data.
 TAGS = [
     {"name": "Ingest", "description": "Report runs from your own pipelines. Needs an API key."},
     {"name": "Runs", "description": "Run history, filters, KPIs, and each run's checks."},
-    {"name": "Analysis", "description": "Rule-based incident analysis for a finished run."},
+    {"name": "Analysis", "description": "Incident analysis with optional LLM explanations."},
     {"name": "Demo", "description": "A bundled synthetic pipeline for trying things out."},
     {"name": "System", "description": "Service health."},
 ]

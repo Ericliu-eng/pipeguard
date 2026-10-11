@@ -1,5 +1,7 @@
 from functools import lru_cache
+from typing import Literal
 
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +24,13 @@ class Settings(BaseSettings):
     # Shared secret required to report a run. Empty disables the ingest endpoint
     # entirely: it accepts writes from outside, so it must not be open by default.
     ingest_api_key: str = ""
+    llm_enabled: bool = False
+    llm_provider: Literal["openai", "anthropic"] = "openai"
+    llm_api_key: SecretStr = SecretStr("")
+    llm_base_url: str = ""
+    llm_model: str = Field(default="", max_length=120)
+    llm_timeout_seconds: float = Field(default=20.0, gt=0, le=120)
+    llm_max_output_tokens: int = Field(default=1024, ge=128, le=4096)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

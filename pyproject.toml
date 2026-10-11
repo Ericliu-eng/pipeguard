@@ -14,6 +14,7 @@ requires-python = ">=3.11"
 # a fresh production install pick it up and crash on an import the code never
 # asked for. Patch releases still float so security fixes arrive without an edit.
 dependencies = [
+  "httpx>=0.28,<0.29",
   "alembic>=1.18,<1.19",
   "fastapi>=0.141,<0.142",
   "pydantic-settings>=2.15,<2.16",
@@ -24,7 +25,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "httpx>=0.28,<0.29",
   "pytest>=8.4,<8.5",
   "ruff>=0.16,<0.17",
 ]

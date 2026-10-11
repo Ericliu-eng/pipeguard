@@ -126,6 +126,12 @@ covers PipeGuard's own checks (`null_rate`, `duplicate_rate`, `freshness`,
 `unique`, `range`, `foreign_key`); any other name falls back to generic advice.
 `likely_causes` and `recommended_steps` are JSON arrays.
 
+When LLM analysis is enabled, incident explanations use the configured Claude or OpenAI
+model. Healthy runs and provider failures use rules. `model_name` identifies the source;
+severity and run/check statuses are never decided by the LLM. Repeat analysis requests
+return the saved result without another provider call. See
+[configuration](OPERATIONS.md#optional-llm-incident-analysis).
+
 ## Demo runs
 
 `POST /runs/demo` runs the bundled pipeline over synthetic data, so every scenario

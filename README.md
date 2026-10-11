@@ -25,6 +25,7 @@ A run monitor for data pipelines: each pipeline reports its finished runs over a
 ## How it works
 
 - **Cross-run checks:** a pipeline can only check its own batch. PipeGuard adds a `row_count_anomaly` check against that pipeline's recent healthy runs — history only the monitor keeps.
+- **Optional LLM analysis:** Claude or OpenAI can explain incidents from run metadata and quality checks, with rule-based fallback. [Configuration](docs/OPERATIONS.md#optional-llm-incident-analysis).
 - **Two states per run:** `status` says whether the run finished, `quality_status` whether its data passed, so a run can succeed and still be flagged.
 - **Safe ingestion:** each report is fingerprinted with SHA-256 so retries are idempotent; the API key is compared in constant time, and an unset key closes the endpoint.
 - **Hardened in production:** the first `/health` returned a constant `200` for two months while its database was gone, and a SQLAlchemy minor release broke production behind a SQLite-only suite. The health check now probes the database, dependencies are pinned to minor releases, and CI runs every test on PostgreSQL 18 as well.
