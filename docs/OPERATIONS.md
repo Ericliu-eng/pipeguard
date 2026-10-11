@@ -51,6 +51,36 @@ want.
 **The anomaly baseline only uses healthy runs.** Runs whose own quality checks failed are
 left out, so one bad load cannot drag the baseline down and hide the next.
 
+## Optional LLM incident analysis
+
+Set these values in `.env` to use the native Claude Messages API:
+
+```dotenv
+LLM_ENABLED=true
+LLM_PROVIDER=anthropic
+LLM_API_KEY=your-api-key
+LLM_MODEL=claude-haiku-5-5
+LLM_TIMEOUT_SECONDS=20
+LLM_MAX_OUTPUT_TOKENS=1024
+```
+
+Restart the service after configuration changes. Keep the key on the server, never in
+frontend code. `LLM_BASE_URL` defaults to `https://api.anthropic.com/v1` for Anthropic
+and `https://api.openai.com/v1` for `LLM_PROVIDER=openai`. A custom base URL must
+include the provider's API prefix, usually `/v1`. OpenAI mode requires a model that
+supports JSON mode and `max_completion_tokens`.
+
+Only the first analysis request for an incident calls the model. Healthy runs use rules;
+repeat requests return the stored analysis. Existing analyses remain stored, including
+rule-based fallbacks. Timeouts, provider errors, refusals, and invalid JSON use rule-based
+advice. The dashboard's model name shows which path produced the explanation.
+
+When enabled, run metadata, error text, and up to 50 check summaries are sent to the
+configured provider. No raw data rows are sent. Avoid secrets in pipeline error messages
+and check descriptions. LLM explanations are hypotheses; severity, execution status,
+and quality status are still determined by the application. There are no automatic retries.
+Output is capped at `LLM_MAX_OUTPUT_TOKENS` (default 1024, maximum 4096).
+
 ## Database migrations
 
 Schema changes are managed by Alembic:
@@ -103,7 +133,7 @@ reached production with every check green.
 
 - The bundled pipeline generates synthetic rows. Real pipelines integrate through
   `POST /runs`; there is no packaged client SDK yet.
-- Incident analysis is rule-based; it does not call an LLM.
+- LLM incident analysis is optional and disabled by default, with rule-based fallback.
 - Ingestion uses one shared API key, with no user accounts or rate limiting.
 - `/health` can report a failure, but nothing watches it and raises an alert yet — which is
   how an earlier outage went unnoticed for two months. Alerting is the next gap to close.
